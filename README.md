@@ -31,3 +31,5 @@ cd frontend
 npm install
 npm start
 ```
+
+Челышев Кирилл Игоревич ЭФБО-10-24

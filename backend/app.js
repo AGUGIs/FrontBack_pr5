@@ -1,278 +1,324 @@
 const express = require('express');
-const cors = require('cors');
 const { nanoid } = require('nanoid');
+const cors = require('cors');  // ← Добавили
+
+// Подключаем Swagger
+const swaggerJsdoc = require('swagger-jsdoc');
+const swaggerUi = require('swagger-ui-express');
 
 const app = express();
 const port = 3000;
 
-// Middleware
+// Middleware для парсинга JSON
 app.use(express.json());
+
+// CORS middleware  ← Добавили
 app.use(cors({
     origin: "http://localhost:3001",
     methods: ["GET", "POST", "PATCH", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"]
 }));
 
-// Логирование запросов
+// Middleware для логирования запросов
 app.use((req, res, next) => {
     res.on('finish', () => {
         console.log(`[${new Date().toISOString()}][${req.method}] ${res.statusCode} ${req.path}`);
+        if (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH') {
+            console.log('Body:', req.body);
+        }
     });
     next();
 });
 
-// === БАЗА ДАННЫХ (связанные сущности) ===
-
-// Пользователи
-let users = [
-    { id: nanoid(6), name: 'Иван Петров', email: 'ivan@example.com', phone: '+7-900-111-22-33' },
-    { id: nanoid(6), name: 'Мария Сидорова', email: 'maria@example.com', phone: '+7-900-444-55-66' },
-    { id: nanoid(6), name: 'Алексей Козлов', email: 'alex@example.com', phone: '+7-900-777-88-99' }
-];
-
-// Товары (кастрюли)
+// База данных товаров (кастрюли)
 let products = [
-    { id: nanoid(6), name: 'Кастрюля "Шеф-Повар" 20л', category: 'Кастрюли', price: 5990, quantity: 15 },
-    { id: nanoid(6), name: 'Кастрюля эмалированная 5л', category: 'Кастрюли', price: 1200, quantity: 30 },
-    { id: nanoid(6), name: 'Казан чугунный 12л', category: 'Казаны', price: 3500, quantity: 8 },
-    { id: nanoid(6), name: 'Сотейник антипригарный', category: 'Сотейники', price: 2100, quantity: 20 },
-    { id: nanoid(6), name: 'Сковорода гриль 28см', category: 'Сковороды', price: 2500, quantity: 12 },
-    { id: nanoid(6), name: 'Ковш для молока 1.5л', category: 'Ковши', price: 890, quantity: 40 },
-    { id: nanoid(6), name: 'Утятница керамическая', category: 'Формы', price: 3200, quantity: 6 },
-    { id: nanoid(6), name: 'Пароварка бамбуковая', category: 'Аксессуары', price: 1500, quantity: 10 },
-    { id: nanoid(6), name: 'Турка медная 500мл', category: 'Кофе', price: 1100, quantity: 18 },
-    { id: nanoid(6), name: 'Вок сковорода 32см', category: 'Сковороды', price: 2800, quantity: 9 }
+    { id: nanoid(6), name: 'Кастрюля "Шеф-Повар" 20л', category: 'Кастрюли', price: 5990, quantity: 15, description: 'Нержавеющая сталь, тройное дно' },
+    { id: nanoid(6), name: 'Кастрюля эмалированная 5л', category: 'Кастрюли', price: 1200, quantity: 30, description: 'Классическая эмалированная кастрюля' },
+    { id: nanoid(6), name: 'Казан чугунный 12л', category: 'Казаны', price: 3500, quantity: 8, description: 'Настоящий чугун для плова' },
 ];
 
-// Заказы (связь: User → Orders → OrderItems → Products)
-let orders = [
-    { 
-        id: nanoid(6), 
-        userId: users[0].id, 
-        status: 'completed', 
-        createdAt: new Date('2026-02-01').toISOString(),
-        items: [
-            { productId: products[0].id, quantity: 2, price: 5990 },
-            { productId: products[1].id, quantity: 1, price: 1200 }
-        ]
-    },
-    { 
-        id: nanoid(6), 
-        userId: users[1].id, 
-        status: 'pending', 
-        createdAt: new Date('2026-02-10').toISOString(),
-        items: [
-            { productId: products[2].id, quantity: 1, price: 3500 }
-        ]
-    },
-    { 
-        id: nanoid(6), 
-        userId: users[0].id, 
-        status: 'processing', 
-        createdAt: new Date('2026-02-15').toISOString(),
-        items: [
-            { productId: products[4].id, quantity: 1, price: 2500 },
-            { productId: products[5].id, quantity: 3, price: 890 }
-        ]
+// ============================================
+// SWAGGER CONFIGURATION
+// ============================================
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Product:
+ *       type: object
+ *       required:
+ *         - name
+ *         - price
+ *       properties:
+ *         id:
+ *           type: string
+ *           description: Автоматически сгенерированный уникальный ID товара
+ *           example: "abc123"
+ *         name:
+ *           type: string
+ *           description: Название товара (кастрюли)
+ *           example: "Кастрюля 20л"
+ *         category:
+ *           type: string
+ *           description: Категория товара
+ *           example: "Кастрюли"
+ *         price:
+ *           type: integer
+ *           description: Цена в рублях
+ *           example: 5990
+ *         quantity:
+ *           type: integer
+ *           description: Количество на складе
+ *           example: 15
+ *         description:
+ *           type: string
+ *           description: Описание товара
+ *           example: "Нержавеющая сталь"
+ */
+
+/**
+ * @swagger
+ * /api/products:
+ *   post:
+ *     summary: Создает новый товар (кастрюлю)
+ *     tags: [Products]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - price
+ *             properties:
+ *               name:
+ *                 type: string
+ *               category:
+ *                 type: string
+ *               price:
+ *                 type: integer
+ *               quantity:
+ *                 type: integer
+ *               description:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Товар успешно создан
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Product'
+ *       400:
+ *         description: Ошибка в теле запроса
+ */
+app.post("/api/products", (req, res) => {
+    const { name, category, price, quantity, description } = req.body;
+
+    if (!name || price === undefined) {
+        return res.status(400).json({ error: "Name and price are required" });
     }
-];
 
-// === ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ===
-
-// Функция для получения заказа с данными пользователя и товаров (JOIN/Aggregation)
-function getOrderWithRelations(orderId) {
-    const order = orders.find(o => o.id === orderId);
-    if (!order) return null;
-
-    const user = users.find(u => u.id === order.userId);
-    const itemsWithProducts = order.items.map(item => {
-        const product = products.find(p => p.id === item.productId);
-        return {
-            ...item,
-            product: product ? {
-                id: product.id,
-                name: product.name,
-                category: product.category
-            } : null
-        };
-    });
-
-    const totalAmount = order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-
-    return {
-        ...order,
-        user,
-        items: itemsWithProducts,
-        totalAmount
+    const newProduct = {
+        id: nanoid(6),
+        name: name.trim(),
+        category: category || 'Другое',
+        price: Number(price),
+        quantity: Number(quantity) || 0,
+        description: description || ''
     };
-}
 
-// Функция для получения всех заказов с агрегацией
-function getAllOrdersWithAggregation() {
-    return orders.map(order => {
-        const user = users.find(u => u.id === order.userId);
-        const totalAmount = order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-        const totalItems = order.items.reduce((sum, item) => sum + item.quantity, 0);
-
-        return {
-            ...order,
-            userName: user ? user.name : 'Unknown',
-            userEmail: user ? user.email : 'Unknown',
-            totalAmount,
-            totalItems
-        };
-    });
-}
-
-// === МАРШРУТЫ API ===
-
-// Главная страница
-app.get('/', (req, res) => {
-    res.send('Добро пожаловать в API Магазина Кастрюль (Practice 5)!');
+    products.push(newProduct);
+    res.status(201).json(newProduct);
 });
 
-// --- USERS ---
-app.get('/api/users', (req, res) => res.json(users));
-app.get('/api/users/:id', (req, res) => {
-    const user = users.find(u => u.id === req.params.id);
-    if (!user) return res.status(404).json({ error: 'Пользователь не найден' });
-    res.json(user);
+/**
+ * @swagger
+ * /api/products:
+ *   get:
+ *     summary: Возвращает список всех товаров
+ *     tags: [Products]
+ *     responses:
+ *       200:
+ *         description: Список товаров
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Product'
+ */
+app.get("/api/products", (req, res) => {
+    res.json(products);
 });
 
-// --- PRODUCTS ---
-app.get('/api/products', (req, res) => res.json(products));
-app.get('/api/products/:id', (req, res) => {
+/**
+ * @swagger
+ * /api/products/{id}:
+ *   get:
+ *     summary: Получает товар по ID
+ *     tags: [Products]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: ID товара
+ *     responses:
+ *       200:
+ *         description: Данные товара
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Product'
+ *       404:
+ *         description: Товар не найден
+ */
+app.get("/api/products/:id", (req, res) => {
     const product = products.find(p => p.id === req.params.id);
-    if (!product) return res.status(404).json({ error: 'Товар не найден' });
+    if (!product) {
+        return res.status(404).json({ error: "Product not found" });
+    }
     res.json(product);
 });
 
-// --- ORDERS (с Relations и Aggregation) ---
+/**
+ * @swagger
+ * /api/products/{id}:
+ *   patch:
+ *     summary: Обновляет данные товара
+ *     tags: [Products]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: ID товара
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               category:
+ *                 type: string
+ *               price:
+ *                 type: integer
+ *               quantity:
+ *                 type: integer
+ *               description:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Обновленный товар
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Product'
+ *       400:
+ *         description: Нет данных для обновления
+ *       404:
+ *         description: Товар не найден
+ */
+app.patch("/api/products/:id", (req, res) => {
+    const id = req.params.id;
+    const product = products.find(p => p.id === id);
+    
+    if (!product) {
+        return res.status(404).json({ error: "Product not found" });
+    }
 
-// GET все заказы с агрегацией (JOIN-подобный запрос)
-app.get('/api/orders', (req, res) => {
-    const ordersWithAggregation = getAllOrdersWithAggregation();
-    res.json(ordersWithAggregation);
+    if (req.body?.name === undefined && req.body?.price === undefined && req.body?.quantity === undefined) {
+        return res.status(400).json({ error: "Nothing to update" });
+    }
+
+    const { name, category, price, quantity, description } = req.body;
+    if (name !== undefined) product.name = name.trim();
+    if (category !== undefined) product.category = category;
+    if (price !== undefined) product.price = Number(price);
+    if (quantity !== undefined) product.quantity = Number(quantity);
+    if (description !== undefined) product.description = description;
+
+    res.json(product);
 });
 
-// GET заказ по ID с полными данными (Relations)
-app.get('/api/orders/:id', (req, res) => {
-    const orderWithRelations = getOrderWithRelations(req.params.id);
-    if (!orderWithRelations) {
-        return res.status(404).json({ error: 'Заказ не найден' });
-    }
-    res.json(orderWithRelations);
-});
-
-// POST создать новый заказ
-app.post('/api/orders', (req, res) => {
-    const { userId, items } = req.body;
-
-    if (!userId || !items || !Array.isArray(items)) {
-        return res.status(400).json({ error: 'userId и items обязательны' });
-    }
-
-    // Валидация товаров
-    for (const item of items) {
-        const product = products.find(p => p.id === item.productId);
-        if (!product) {
-            return res.status(400).json({ error: `Товар ${item.productId} не найден` });
-        }
-        if (product.quantity < item.quantity) {
-            return res.status(400).json({ error: `Недостаточно товара: ${product.name}` });
-        }
-    }
-
-    const newOrder = {
-        id: nanoid(6),
-        userId,
-        status: 'pending',
-        createdAt: new Date().toISOString(),
-        items: items.map(item => {
-            const product = products.find(p => p.id === item.productId);
-            return {
-                productId: item.productId,
-                quantity: item.quantity,
-                price: product.price
-            };
-        })
-    };
-
-    orders.push(newOrder);
-    res.status(201).json(getOrderWithRelations(newOrder.id));
-});
-
-// PATCH обновить статус заказа
-app.patch('/api/orders/:id', (req, res) => {
-    const order = orders.find(o => o.id === req.params.id);
-    if (!order) {
-        return res.status(404).json({ error: 'Заказ не найден' });
-    }
-
-    const { status } = req.body;
-    if (status && ['pending', 'processing', 'completed', 'cancelled'].includes(status)) {
-        order.status = status;
-    }
-
-    res.json(getOrderWithRelations(order.id));
-});
-
-// DELETE удалить заказ
-app.delete('/api/orders/:id', (req, res) => {
-    const exists = orders.some(o => o.id === req.params.id);
+/**
+ * @swagger
+ * /api/products/{id}:
+ *   delete:
+ *     summary: Удаляет товар
+ *     tags: [Products]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: ID товара
+ *     responses:
+ *       204:
+ *         description: Товар успешно удален
+ *       404:
+ *         description: Товар не найден
+ */
+app.delete("/api/products/:id", (req, res) => {
+    const id = req.params.id;
+    const exists = products.some(p => p.id === id);
+    
     if (!exists) {
-        return res.status(404).json({ error: 'Заказ не найден' });
+        return res.status(404).json({ error: "Product not found" });
     }
-    orders = orders.filter(o => o.id !== req.params.id);
+    
+    products = products.filter(p => p.id !== id);
     res.status(204).send();
 });
 
-// --- AGGREGATION ENDPOINTS ---
+// ============================================
+// SWAGGER SETUP
+// ============================================
 
-// GET статистика по заказам (агрегация)
-app.get('/api/stats/orders', (req, res) => {
-    const totalOrders = orders.length;
-    const totalRevenue = orders.reduce((sum, order) => {
-        return sum + order.items.reduce((s, item) => s + (item.price * item.quantity), 0);
-    }, 0);
-    const byStatus = {
-        pending: orders.filter(o => o.status === 'pending').length,
-        processing: orders.filter(o => o.status === 'processing').length,
-        completed: orders.filter(o => o.status === 'completed').length,
-        cancelled: orders.filter(o => o.status === 'cancelled').length
-    };
+const swaggerOptions = {
+    definition: {
+        openapi: '3.0.0',
+        info: {
+            title: 'API Магазина Кастрюль',
+            version: '1.0.0',
+            description: 'Документация API для управления товарами магазина кастрюль',
+        },
+        servers: [
+            {
+                url: `http://localhost:${port}`,
+                description: 'Локальный сервер',
+            },
+        ],
+    },
+    apis: ['./app.js'],
+};
 
-    res.json({
-        totalOrders,
-        totalRevenue,
-        byStatus,
-        averageOrderValue: totalOrders > 0 ? totalRevenue / totalOrders : 0
-    });
-});
+const swaggerSpec = swaggerJsdoc(swaggerOptions);
 
-// GET заказы пользователя с агрегацией
-app.get('/api/users/:id/orders', (req, res) => {
-    const user = users.find(u => u.id === req.params.id);
-    if (!user) {
-        return res.status(404).json({ error: 'Пользователь не найден' });
-    }
+// Подключаем Swagger UI по адресу /api-docs
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-    const userOrders = getAllOrdersWithAggregation().filter(o => o.userId === req.params.id);
-    res.json({ user, orders: userOrders });
-});
-
-// 404 для остальных маршрутов
+// 404 для всех остальных маршрутов
 app.use((req, res) => {
-    res.status(404).json({ error: 'Маршрут не найден' });
+    res.status(404).json({ error: "Not found" });
 });
 
 // Глобальный обработчик ошибок
 app.use((err, req, res, next) => {
     console.error("Unhandled error:", err);
-    res.status(500).json({ error: 'Внутренняя ошибка сервера' });
+    res.status(500).json({ error: "Internal server error" });
 });
 
-// Запуск
+// Запуск сервера
 app.listen(port, () => {
     console.log(`Сервер запущен на http://localhost:${port}`);
+    console.log(`Swagger UI доступен по адресу http://localhost:${port}/api-docs`);
 });

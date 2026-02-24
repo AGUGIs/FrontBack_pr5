@@ -1,13 +1,13 @@
 import React from 'react';
-import OrdersPage from './pages/OrdersPage/OrdersPage';
+import ProductsPage from './pages/ProductsPage/ProductsPage';
 import './App.css';
 
 function App() {
-    return (
-        <div className="App">
-            <OrdersPage />
-        </div>
-    );
+  return (
+    <div className="App">
+      <ProductsPage />
+    </div>
+  );
 }
 
 export default App;

@@ -1,0 +1,286 @@
+﻿$bg: #0b0f19;
+$panel: rgba(255, 255, 255, 0.03);
+$border: rgba(255, 255, 255, 0.10);
+$text: #e7eaf3;
+$primary: rgba(99, 102, 241, 0.55);
+$primaryBg: rgba(99, 102, 241, 0.18);
+$danger: rgba(239, 68, 68, 0.45);
+$dangerBg: rgba(239, 68, 68, 0.12);
+
+@mixin card($radius: 12px) {
+  border-radius: $radius;
+  border: 1px solid $border;
+  background: $panel;
+}
+
+@mixin container($w: 1200px) {
+  max-width: $w;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: $bg;
+  color: $text;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.02);
+
+  &__inner {
+    @include container();
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  &__right {
+    opacity: 0.75;
+    font-size: 13px;
+  }
+}
+
+.brand {
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  font-size: 20px;
+}
+
+.main {
+  flex: 1;
+  display: flex;
+}
+
+.container {
+  @include container();
+  padding: 16px;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+
+  .title {
+    margin: 0;
+    font-size: 24px;
+  }
+}
+
+.btn {
+  padding: 8px 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: 14px;
+
+  &:hover {
+    opacity: 0.8;
+  }
+
+  &--primary {
+    background: $primaryBg;
+    border: 1px solid $primary;
+  }
+
+  &--danger {
+    background: $dangerBg;
+    border: 1px solid $danger;
+    color: #ff6b6b;
+  }
+}
+
+.list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.empty {
+  padding: 40px;
+  text-align: center;
+  opacity: 0.7;
+}
+
+.product-card {
+  @include card(12px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+
+  &__image {
+    height: 180px;
+    background: rgba(255, 255, 255, 0.05);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    &__placeholder {
+      font-size: 60px;
+    }
+  }
+
+  &__content {
+    padding: 16px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__category {
+    font-size: 12px;
+    opacity: 0.6;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  &__title {
+    margin: 0 0 8px 0;
+    font-size: 16px;
+  }
+
+  &__description {
+    font-size: 13px;
+    opacity: 0.7;
+    margin: 0 0 12px 0;
+    flex: 1;
+  }
+
+  &__info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    font-size: 14px;
+  }
+
+  &__price {
+    font-weight: 700;
+    color: #4ade80;
+  }
+
+  &__quantity {
+    opacity: 0.6;
+    font-size: 12px;
+  }
+
+  &__actions {
+    display: flex;
+    gap: 8px;
+  }
+}
+
+.footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.02);
+
+  &__inner {
+    @include container();
+    padding: 14px 16px;
+    opacity: 0.7;
+    font-size: 13px;
+    text-align: center;
+  }
+}
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 1000;
+}
+
+.modal {
+  width: 100%;
+  max-width: 500px;
+  border-radius: 16px;
+  border: 1px solid $border;
+  background: #0f1526;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+
+  &__header {
+    padding: 16px;
+    border-bottom: 1px solid $border;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  &__title {
+    font-weight: 700;
+    font-size: 18px;
+  }
+
+  &__footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 16px;
+    border-top: 1px solid $border;
+  }
+}
+
+.iconBtn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid $border;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: 18px;
+}
+
+.form {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+
+  .input {
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid $border;
+    background: rgba(255, 255, 255, 0.05);
+    color: inherit;
+    outline: none;
+    font-size: 14px;
+
+    &:focus {
+      border-color: $primary;
+    }
+  }
+
+  textarea.input {
+    resize: vertical;
+    min-height: 80px;
+  }
+}

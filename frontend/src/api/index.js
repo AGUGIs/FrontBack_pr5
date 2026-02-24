@@ -1,60 +1,51 @@
-import axios from 'axios';
+import axios from "axios";
 
 const apiClient = axios.create({
-    baseURL: 'http://localhost:3000/api',
-    headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-    }
+  baseURL: "http://localhost:3000/api",
+  headers: {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+  },
 });
 
 export const api = {
-    // Users
-    getUsers: async () => {
-        const response = await apiClient.get('/users');
-        return response.data;
-    },
+  // Получить все товары
+  getProducts: async () => {
+    const response = await apiClient.get("/products");
+    return response.data;
+  },
 
-    // Products
-    getProducts: async () => {
-        const response = await apiClient.get('/products');
-        return response.data;
-    },
+  // Получить товар по ID
+  getProductById: async (id) => {
+    const response = await apiClient.get(`/products/${id}`);
+    return response.data;
+  },
 
-    // Orders (с Relations и Aggregation)
-    getOrders: async () => {
-        const response = await apiClient.get('/orders');
-        return response.data;
-    },
+  // Создать новый товар
+  createProduct: async (product) => {
+    const response = await apiClient.post("/products", product);
+    return response.data;
+  },
 
-    getOrderById: async (id) => {
-        const response = await apiClient.get(`/orders/${id}`);
-        return response.data;
-    },
+  // Обновить товар
+  updateProduct: async (id, product) => {
+    const response = await apiClient.patch(`/products/${id}`, product);
+    return response.data;
+  },
 
-    createOrder: async (order) => {
-        const response = await apiClient.post('/orders', order);
-        return response.data;
-    },
-
-    updateOrderStatus: async (id, status) => {
-        const response = await apiClient.patch(`/orders/${id}`, { status });
-        return response.data;
-    },
-
-    deleteOrder: async (id) => {
-        const response = await apiClient.delete(`/orders/${id}`);
-        return response.data;
-    },
-
-    // Aggregation
-    getOrderStats: async () => {
-        const response = await apiClient.get('/stats/orders');
-        return response.data;
-    },
-
-    getUserOrders: async (userId) => {
-        const response = await apiClient.get(`/users/${userId}/orders`);
-        return response.data;
-    }
+  // Удалить товар
+  deleteProduct: async (id) => {
+    const response = await apiClient.delete(`/products/${id}`);
+    return response.data;
+  },
+  
+  // Получить статистику (если есть такой эндпоинт в вашем backend)
+  getStats: async () => {
+      try {
+          const response = await apiClient.get("/stats/orders"); 
+          return response.data;
+      } catch (e) {
+          return null; // Если эндпоинта нет, игнорируем ошибку
+      }
+  }
 };
